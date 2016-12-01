@@ -47,13 +47,6 @@ def create_image_model():
     # This creates the image_model
     image_model = create_autoencoder(4096, 300)
     image_model.compile(optimizer='adadelta', loss='binary_crossentropy')
-    image_model.fit(np.array(spanned_features),
-                    np.array(spanned_features),
-                    nb_epoch=50,
-                    batch_size=256,
-                    shuffle=True)
-    image_model.layers.pop()
-    image_model.outputs = [image_model.layers[-1].output]
     return image_model
 
 
@@ -74,17 +67,6 @@ def get_data():
     with open(captions_filepath) as f:
         captions = json.load(f)
     features = np.load(features_filepath)
-
-    new_captions = []
-    new_features = []
-
-    test = []
-    for i in range(len(captions)):
-        caption = captions[i]
-        for j in range(len(caption[1])):
-            sentence = caption[1][j]
-            new_captions.append(np.array(sentence))
-            new_features.append(features[i])
 
     return captions, features
 
@@ -187,9 +169,8 @@ language_model = Sequential()
 language_model.add(embedding_layer)
 language_model.add(LSTM(512, return_sequences=False, input_shape=(max_caption_len, embedding_dim)))
 language_model.add(Dense(len(word_indexes) + 1))
-print(language_model.predict(np.array([captions[0]])).shape)
 # language_model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
-# language_model.fit(np.array([captions[0]]), np.array([captions[0]]), batch_size=16, nb_epoch=10)
+# language_model.fit(np.array(captions[:-1]), np.array(captions[1:]), batch_size=16, nb_epoch=10)
 
 #
 # model = Sequential()
