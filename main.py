@@ -45,16 +45,16 @@ def create_embedding_matrix(word_indexes, embedding_dim):
 
 def create_image_model():
     # This creates the image_model
-    image_model = create_autoencoder(4096, 300)
-    image_model.compile(optimizer='adadelta', loss='binary_crossentropy')
-    return image_model
+    input_dim = 4096
+    encoded_dim = 300
 
-
-def create_autoencoder(input_dim, encoded_dim):
     input_img = Input(shape=(input_dim,))
     encoded = Dense(encoded_dim, activation='linear')(input_img)
-    decoded = Dense(input_dim, activation='sigmoid')(encoded)
-    return Model(input=input_img, output=decoded)
+
+    encoder = Model(input=input_img, output=encoded)
+    encoder.compile(optimizer='adadelta', loss='binary_crossentropy')
+    encoder.load_weights('autoencoder_weights')
+    return encoder
 
 
 def get_data():
@@ -73,7 +73,7 @@ def get_data():
 
 def calculate_word_indexes(captions):
     indexes = {}
-    curr_index = 1
+    curr_index = 3
 
     for i in range(len(captions)):
         caption = captions[i]
@@ -109,13 +109,16 @@ def convert_and_drop_captions(captions, features, max_length, word_indexes):
             features.pop(i)
         else:
             sentence = []
-            j = 0
+            sentence.append(0)
+            j = 1
             while j < len(caption):
-                sentence.append(word_indexes[caption[j]])
+                sentence.append(word_indexes[caption[j-1]])
                 j += 1
 
+            sentence.append(1)
+
             while j < max_length:
-                sentence.append(0)
+                sentence.append(2)
                 j += 1
 
             new_captions.append(sentence)
@@ -124,7 +127,7 @@ def convert_and_drop_captions(captions, features, max_length, word_indexes):
 
 
 longest_caption = 49  # The length of the longest caption
-max_caption_len = 16
+max_caption_len = 16  # 16 words plus start of sentence and end of sentence
 vocab_size = 10000
 embedding_dim = 300
 
@@ -148,29 +151,35 @@ print('Done')
 # vgg_16_net = get_vgg_16()
 
 # This creates the 4096->300 encoder
-# image_model = create_image_model()
+print('Loading encoder...')
+image_model = create_image_model()
+print('Done')
 
 # This creates the 10k->300 embedding model
 print('Creating embedding layer...')
 # embedding_matrix = create_embedding_matrix(word_indexes, embedding_dim)
 # np.savetxt('embedding_matrix', embedding_matrix)
 embedding_matrix = np.loadtxt('embedding_matrix')
-embedding_layer = Embedding(len(word_indexes) + 1, embedding_dim,
+embedding_layer = Embedding(len(word_indexes)+1, embedding_dim,
                             weights=[embedding_matrix],
                             input_length=max_caption_len,
                             trainable=False)
-# embedding_model = Sequential()
-# embedding_model.add(embedding_layer)
-# print(embedding_model.predict(np.array([captions[0]]))[0].shape)
 print('Done')
 
 # 512 hidden units in LSTM layer. 300-dimensional word vectors.
+caption = [0,2,3,3,3,3,3,3,3,3,3,3,3,3,3,1]
 language_model = Sequential()
 language_model.add(embedding_layer)
-language_model.add(LSTM(512, return_sequences=False, input_shape=(max_caption_len, embedding_dim)))
-language_model.add(Dense(len(word_indexes) + 1))
-# language_model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
-# language_model.fit(np.array(captions[:-1]), np.array(captions[1:]), batch_size=16, nb_epoch=10)
+language_model.add(LSTM(512, return_sequences=True, input_shape=(max_caption_len, embedding_dim)))
+# language_model.add(Dense(len(word_indexes) + 1))
+# language_model.add(Activation('softmax'))
+language_model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
+prediction = language_model.predict(np.array([caption]))[0]
+print(prediction.shape)
+print(prediction)
+print(np.argmax(prediction))
+print(list(word_indexes.keys())[list(word_indexes.values()).index(np.argmax(prediction))])
+# language_model.fit(np.array([np.zeros(len(word_indexes) + 1)]), np.array([np.zeros(len(word_indexes) + 1)]), batch_size=16, nb_epoch=10)
 
 #
 # model = Sequential()
