@@ -148,18 +148,17 @@ embedding_dim = 300
 
 # We load the data and create the training set
 print('Loading datasets...')
+
 train_captions, train_features, val_captions, val_features = get_data(val_captions_filepath,
                                                                       val_features_filepath,
                                                                       val_captions_filepath,
                                                                       val_features_filepath)
 
-
 print()
 print('Done')
 
-# We don't need this anymore
-paths_and_captions = None
-features = None
+
+'''
 
 word_indexes = calculate_word_indexes(captions)
 
@@ -178,14 +177,15 @@ print('Done')
 
 # This creates the 10k->300 embedding model
 print('Creating embedding layer...')
-# embedding_matrix = create_embedding_matrix(word_indexes, embedding_dim)
-# np.savetxt('embedding_matrix', embedding_matrix)
+#embedding_matrix = create_embedding_matrix(word_indexes, embedding_dim)
+#np.savetxt('embedding_matrix', embedding_matrix)
 embedding_matrix = np.loadtxt('embedding_matrix')
 embedding_layer = Embedding(len(word_indexes)+1, embedding_dim,
                             weights=[embedding_matrix],
                             input_length=max_caption_len,
                             trainable=False)
 print('Done')
+
 
 # 512 hidden units in LSTM layer. 300-dimensional word vectors.
 language_model = Sequential()
@@ -202,6 +202,7 @@ model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
 
 caption = [0,2,3,3,3,3,3,3,3,3,3,3,3,3,3,1]
 
+
 # prediction = image_model.predict(np.array([spanned_features[0]]))
 # print('Image model output shape:', prediction.shape)
 # prediction2 = language_model.predict(np.array([caption]))
@@ -214,4 +215,6 @@ output = np.append(np.zeros(len(word_indexes)), [1], axis=0)
 # prediction = model.predict([np.array([spanned_features[0]]), np.array([caption])])
 # print(prediction)
 # print(prediction.shape)
+
+'''
 
