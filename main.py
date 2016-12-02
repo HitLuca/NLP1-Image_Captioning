@@ -4,7 +4,7 @@ import numpy as np
 from keras.engine import Input
 from keras.engine import Merge
 from keras.engine import Model
-from keras.layers import Dense, LSTM, Activation, Embedding, K
+from keras.layers import Dense, LSTM, Activation, Embedding, K, TimeDistributed, RepeatVector
 from keras.models import Sequential
 from keras.optimizers import Adam
 import os
@@ -43,17 +43,15 @@ def create_embedding_matrix(word_indexes, embedding_dim):
     return embedding_matrix
 
 
-def create_image_model():
+def create_image_model(max_caption_len):
     # This creates the image_model
     input_dim = 4096
     encoded_dim = 300
 
-    input_img = Input(shape=(input_dim,))
-    encoded = Dense(encoded_dim, activation='linear')(input_img)
-
-    encoder = Model(input=input_img, output=encoded)
-    encoder.compile(optimizer='adadelta', loss='binary_crossentropy')
+    encoder = Sequential()
+    encoder.add(Dense(encoded_dim, activation='linear', input_shape=(input_dim,), trainable=False))
     encoder.load_weights('autoencoder_weights')
+    encoder.add(RepeatVector(max_caption_len))
     return encoder
 
 
@@ -152,7 +150,7 @@ print('Done')
 
 # This creates the 4096->300 encoder
 print('Loading encoder...')
-image_model = create_image_model()
+image_model = create_image_model(max_caption_len)
 print('Done')
 
 # This creates the 10k->300 embedding model
@@ -167,28 +165,29 @@ embedding_layer = Embedding(len(word_indexes)+1, embedding_dim,
 print('Done')
 
 # 512 hidden units in LSTM layer. 300-dimensional word vectors.
-caption = [0,2,3,3,3,3,3,3,3,3,3,3,3,3,3,1]
 language_model = Sequential()
 language_model.add(embedding_layer)
 language_model.add(LSTM(512, return_sequences=True, input_shape=(max_caption_len, embedding_dim)))
-# language_model.add(Dense(len(word_indexes) + 1))
-# language_model.add(Activation('softmax'))
-language_model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
-prediction = language_model.predict(np.array([caption]))[0]
-print(prediction.shape)
-print(prediction)
-print(np.argmax(prediction))
-print(list(word_indexes.keys())[list(word_indexes.values()).index(np.argmax(prediction))])
-# language_model.fit(np.array([np.zeros(len(word_indexes) + 1)]), np.array([np.zeros(len(word_indexes) + 1)]), batch_size=16, nb_epoch=10)
+language_model.add(TimeDistributed(Dense(300)))
 
-#
-# model = Sequential()
-# model.add(Merge([image_model, language_model], mode='concat', concat_axis=1))
-# model.add(Dense(vocab_size))
-# model.add(Activation('softmax'))
-#
-# model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
-#
+model = Sequential()
+model.add(Merge([image_model, language_model], mode='concat', concat_axis=-1))
+model.add(LSTM(256, return_sequences=False))
+model.add(Dense(len(word_indexes)+1))
+model.add(Activation('softmax'))
+model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
+
+caption = [0,2,3,3,3,3,3,3,3,3,3,3,3,3,3,1]
+
+# prediction = image_model.predict(np.array([spanned_features[0]]))
+# print('Image model output shape:', prediction.shape)
+# prediction2 = language_model.predict(np.array([caption]))
+# print('Language model output shape:', prediction2.shape)
+# prediction3 = model.predict([np.array([spanned_features[0]]), np.array([caption])])
+# print('Main model output shape:', prediction3.shape)
+
+output = np.append(np.zeros(len(word_indexes)), [1], axis=0)
+model.fit([np.array([spanned_features[0]]), np.array([caption])], [np.reshape(output, (1, 974))], nb_epoch=10000)
 # model.fit(np.array(spanned_features), np.array(captions), batch_size=16, nb_epoch=10)
 
 
