@@ -55,18 +55,30 @@ def create_image_model(max_caption_len):
     return encoder
 
 
-def get_data():
-    # 20000 images
-    # 4096 features
+def parse_and_span_captions(captions_and_filepaths, max_caption_len):
+    captions = []
+    for i in range(len(captions_and_filepaths)):
+        caption = captions_and_filepaths[1]
+        for j in range(len(caption)):
+            captions.append(caption[j])
+    return captions
 
-    captions_filepath = 'dataset/merged_val.json'
-    features_filepath = 'dataset/merged_val.npy'
 
-    with open(captions_filepath) as f:
-        captions = json.load(f)
-    features = np.load(features_filepath)
+def get_data(train_captions_filepath, train_features_filepath, val_captions_filepath, val_features_filepath):
+    train_captions = []
+    with open(train_captions_filepath) as f:
+        content = f.readlines()
+        for caption in content:
+            train_captions.append(caption)
+    train_features = np.load(train_features_filepath)
 
-    return captions, features
+    val_captions = []
+    with open(val_captions_filepath) as f:
+        content = f.readlines()
+        for caption in content:
+            val_captions.append(caption)
+    val_features = np.load(val_features_filepath)
+    return train_captions, train_features, val_captions, val_features
 
 
 def calculate_word_indexes(captions):
@@ -124,15 +136,25 @@ def convert_and_drop_captions(captions, features, max_length, word_indexes):
     return new_captions
 
 
-longest_caption = 49  # The length of the longest caption
+train_captions_filepath = 'dataset/train_captions'
+train_features_filepath = 'dataset/train_features'
+
+val_captions_filepath = 'dataset/val_captions'
+val_features_filepath = 'dataset/val_features'
+
 max_caption_len = 16  # 16 words plus start of sentence and end of sentence
 vocab_size = 10000
 embedding_dim = 300
 
 # We load the data and create the training set
-print('Loading and spanning data...')
-paths_and_captions, features = get_data()
-captions, spanned_features = span_captions_features(paths_and_captions[:100], features[:100])
+print('Loading datasets...')
+train_captions, train_features, val_captions, val_features = get_data(val_captions_filepath,
+                                                                      val_features_filepath,
+                                                                      val_captions_filepath,
+                                                                      val_features_filepath)
+
+
+print()
 print('Done')
 
 # We don't need this anymore
@@ -141,6 +163,7 @@ features = None
 
 word_indexes = calculate_word_indexes(captions)
 
+print(len(word_indexes))
 print('Converting and dropping longer captions...')
 captions = convert_and_drop_captions(captions, spanned_features, max_caption_len, word_indexes)
 print('Done')
@@ -187,21 +210,8 @@ caption = [0,2,3,3,3,3,3,3,3,3,3,3,3,3,3,1]
 # print('Main model output shape:', prediction3.shape)
 
 output = np.append(np.zeros(len(word_indexes)), [1], axis=0)
-model.fit([np.array([spanned_features[0]]), np.array([caption])], [np.reshape(output, (1, 974))], nb_epoch=10000)
-# model.fit(np.array(spanned_features), np.array(captions), batch_size=16, nb_epoch=10)
+# model.fit([np.array([spanned_features[0]]), np.array([caption])], [np.reshape(output, (1, 974))], nb_epoch=1000)
+# prediction = model.predict([np.array([spanned_features[0]]), np.array([caption])])
+# print(prediction)
+# print(prediction.shape)
 
-
-
-
-
-
-
-
-# language_model = Sequential()
-# language_model.add(Embedding(vocab_size, 256, input_length=max_caption_len))
-# language_model.add(GRU(output_dim=128, return_sequences=True))
-# language_model.add(Dense(vocab_size))
-# language_model.add(Activation('softmax'))
-#
-# language_model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
-# language_model.fit(features, captions, batch_size=16, nb_epoch=100)
