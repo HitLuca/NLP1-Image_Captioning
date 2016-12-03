@@ -134,6 +134,7 @@ ENV/
 # Rope project settings
 .ropeproject
 
-dataset/*
 embeddings
 cnns
+embedding_matrix
+dataset/*

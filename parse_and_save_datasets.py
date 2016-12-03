@@ -1,29 +1,40 @@
 import json
 
-import numpy as np
+train_captions_filepath = 'dataset/merged_train.json'
+val_captions_filepath = 'dataset/merged_val.json'
 
-captions_filepath = 'dataset/merged_val.json'
-features_filepath = 'dataset/merged_val.npy'
+with open(train_captions_filepath) as f:
+    train_captions_and_images = json.load(f)
+with open(val_captions_filepath) as f:
+    val_captions_and_images = json.load(f)
 
-with open(captions_filepath) as f:
-    captions_and_filepaths = json.load(f)
-features = np.load(features_filepath)
+train_captions = []
+val_captions = []
 
-f_features = open('dataset/val_features', 'a')
-f_captions = open('dataset/val_captions', 'w')
+for i in range(len(train_captions_and_images)):
+    print(i, '/', len(train_captions_and_images))
+    captions = train_captions_and_images[i][1]
+    for j in range(len(captions)):
+        if captions[j][-1] != '.':
+            captions[j].append('.')
+        captions[j] = [x.lower() for x in captions[j]]
+        captions[j].insert(0, '<S>')
+        captions[j].append('</S>')
+    train_captions.append(captions)
 
-new_features = np.array([])
-for i in range(len(captions_and_filepaths)):
-    print(i, '/', len(captions_and_filepaths))
-    captions = captions_and_filepaths[i][1]
-    for caption in captions:
-        if caption[-1] != '.':
-            caption.append('.')
-        caption = [x.lower() for x in caption]
-        caption.insert(0, '<S>')
-        caption.append('</S>')
-        print(caption, file=f_captions)
-        new_features = np.append(new_features, features[i])
-    f_captions.flush()
-f_captions.close()
-new_features.tofile(f_features)
+for i in range(len(val_captions_and_images)):
+    print(i, '/', len(val_captions_and_images))
+    captions = val_captions_and_images[i][1]
+    for j in range(len(captions)):
+        if captions[j][-1] != '.':
+            captions[j].append('.')
+        captions[j] = [x.lower() for x in captions[j]]
+        captions[j].insert(0, '<S>')
+        captions[j].append('</S>')
+        val_captions.append(captions)
+
+with open('dataset/train_captions.json', 'w') as f:
+    json.dump(train_captions, f)
+
+with open('dataset/val_captions.json', 'w') as f:
+    json.dump(val_captions, f)
