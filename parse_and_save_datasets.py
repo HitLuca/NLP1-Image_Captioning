@@ -5,6 +5,8 @@ train_captions_filepath = 'dataset/merged_train.json'
 train_features_filepath = 'dataset/merged_train.npy'
 val_captions_filepath = 'dataset/merged_val.json'
 val_features_filepath = 'dataset/merged_val.npy'
+
+max_caption_len = 16
 #
 # with open(train_captions_filepath) as f:
 #     train_captions_and_images = json.load(f)
@@ -42,19 +44,24 @@ for i in range(len(val_captions_and_images)):
         captions[j] = [x.lower() for x in captions[j]]
         captions[j].insert(0, '<S>')
         captions[j].append('</S>')
-        val_captions.append(captions)
-        val_feature_master.append(val_features[i][:])
+        if len(captions[j]) < max_caption_len:
+            val_captions.append(captions[j])
+            val_feature_master.append(val_features[i][:])
 
+''' ===== training ===== '''
 # with open('dataset/train_captions.json', 'w') as f:
 #     json.dump(train_captions, f)
-
-with open('dataset/val_captions.json', 'w') as f:
-    json.dump(val_captions, f)
 
 # training
 # train_spanned_feature = np.array(train_feature_master)
 # np.save('dataset/train_spanned_features.npy', train_spanned_feature)
 
-# val
+print len(val_captions)
+print len(val_feature_master)
+
+''' ===== validation ===== '''
+with open('dataset/val_captions.json', 'w') as f:
+    json.dump(val_captions, f)
+
 val_spanned_feature = np.array(val_feature_master)
 np.save('dataset/val_spanned_features.npy', val_spanned_feature)

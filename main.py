@@ -31,31 +31,41 @@ def get_data(train_captions_filepath, train_features_filepath, val_captions_file
     return train_captions, train_features, val_captions, val_features
 
 
-def span_drop_captions(captions, max_caption_len, filename):
-    print 'captions length b4 span/drop: ' + str(len(captions))
-    for feature_captions in captions:
-        i = 0
-        while i < len(feature_captions):
-            if len(feature_captions[i]) > max_caption_len: # Taking into account start and end of sentence symbols
-                feature_captions.remove(feature_captions[i])
-            else:
-                if len(feature_captions[i]) < max_caption_len:
-                    for _ in range(max_caption_len - len(feature_captions[i])):
-                        feature_captions[i].append('</SPAN>')
-                i += 1
-        if len(feature_captions) == 0:
-            print('REMOVED ALL CAPTIONS FOR ONE FEATURE, INCREASE MAX_CAPTION_LEN OR MODIFY ME!')
+def get_val_data(val_captions_filepath, val_features_filepath):
 
-    with open(filename, 'w') as f:
+    with open(val_captions_filepath) as f:
+        val_captions = json.load(f)
+    val_features = np.load(val_features_filepath)
+
+    return val_captions, val_features
+
+
+# use this function so that the captions doesn't load again.
+def get_features(train_features_filepath, val_features_filepath):
+
+    train_features = np.load(train_features_filepath)
+    val_features = np.load(val_features_filepath)
+
+    return train_features, val_features
+
+
+def span_drop_captions(captions, max_caption_len, filename_cap):
+
+    for i in range(len(captions)):
+        # process through each line of caption, 1 line = 1 caption
+        if len(captions[i]) < max_caption_len:              # add extra span token, fill to max length
+            for _ in range(max_caption_len - len(captions[i])):
+                captions[i].append('</SPAN>')
+
+    with open(filename_cap, 'w') as f:
         json.dump(captions, f)
 
-    return captions
 
 
 def convert_captions(captions, word_indexes, filename):
+
     for i in range(len(captions)):
-        for j in range(len(captions[i])):
-            captions[i][j] = [word_indexes[x] for x in captions[i][j]]
+        captions[i] = [word_indexes[x] for x in captions[i]]
 
     with open(filename, 'w') as f:
         json.dump(captions, f)
@@ -81,23 +91,18 @@ def get_sequences_from_caption(caption, max_caption_len, word_indexes):
     return sequences, predictions
 
 
-def create_dataset(features, captions, max_caption_len, word_indexes):
-    F = []
+def create_dataset(captions):
     C = []
     Y = []
+
     for i in range(len(captions)):
-        for caption in captions[i]:
-            sequences, predictions = get_sequences_from_caption(caption, max_caption_len, word_indexes)
-            for j in range(len(sequences)):
-                F.append(features[i])
-                C.append(np.reshape(np.array(sequences[j]), (1, max_caption_len)))
-                prediction = np.zeros(len(word_indexes))
-                prediction[predictions[j]] = 1
-                Y.append(prediction)
-    F = np.array(F)
+        C.append(captions[i][:-1])
+        Y.append(captions[i][1:])
+
     C = np.array(C)
     Y = np.array(Y)
-    return F, C, Y
+
+    return C, Y
 
 
 def calculate_word_indexes(train_captions, val_captions):
@@ -118,6 +123,7 @@ def calculate_word_indexes(train_captions, val_captions):
                 if word not in indexes:
                     indexes[word] = curr_index
                     curr_index += 1
+    indexes['</SPAN>'] = curr_index
     return indexes
 
 
@@ -210,92 +216,103 @@ train_captions_filepath = 'dataset/train_captions.json'
 train_features_filepath = 'dataset/merged_train.npy'
 
 val_captions_filepath = 'dataset/val_captions.json'
-val_features_filepath = 'dataset/merged_val.npy'
+val_features_filepath = 'dataset/val_spanned_features.npy'
 
 max_caption_len = 16  # 16 words plus start of sentence and end of sentence
 vocab_size = 10000
 embedding_dim = 300
 
-print('Loading datasets...')
-train_captions, train_features, val_captions, val_features = get_data(train_captions_filepath,
-                                                                      train_features_filepath,
-                                                                      val_captions_filepath,
-                                                                      val_features_filepath)
+print('Loading validation datasets...')
+# train_captions, train_features, val_captions, val_features = get_data(train_captions_filepath,
+#                                                                       train_features_filepath,
+#                                                                       val_captions_filepath,
+#                                                                       val_features_filepath)
+# val_captions, val_features = get_val_data(val_captions_filepath, val_features_filepath)
+
+# use this if captions is already processed
+val_features = np.load(val_features_filepath)
 print('Done\n')
 
 
-print('Calculating word indexes...')
-#with open('dataset/word_indexes.json') as f:
-#    word_indexes = json.load(f)
-word_indexes = calculate_word_indexes(train_captions, val_captions)
-with open('dataset/word_indexes.json', 'w') as f:
-     json.dump(word_indexes, f)
+print('Loading word indexes...')
+with open('dataset/word_indexes.json') as f:
+    word_indexes = json.load(f)
+# print('Calculating word indexes...')
+# word_indexes = calculate_word_indexes(train_captions, val_captions)
+# with open('dataset/word_indexes.json', 'w') as f:
+#      json.dump(word_indexes, f)
 print('Done\n')
 
 
 print('Converting captions to int...')
 filename_train_converted_caption = 'dataset/train_converted_caption.json'
 filename_val_converted_caption = 'dataset/val_converted_caption.json'
-convert_captions(train_captions, word_indexes, filename_train_converted_caption)
-convert_captions(val_captions, word_indexes, filename_val_converted_caption)
+# convert_captions(train_captions, word_indexes, filename_train_converted_caption)
+
+# convert_captions(val_captions, word_indexes, filename_val_converted_caption)
+
 # with open(filename_train_converted_caption) as f:
 #     train_captions = json.load(f)
-# with open(filename_val_converted_caption) as f:
+
+# with open(filename_val_converted_caption) as f:     # load the captions that is already converted to INT
 #     val_captions = json.load(f)
 print('Done\n')
 
 
-print('Dropping and spanning captions to length ' + str(max_caption_len) + '...')
+# print('Dropping and spanning captions to length ' + str(max_caption_len) + '...')
 filename_train_drop_span_cap = 'dataset/train_drop_span_cap.json'
-filename_val_drop_span_cap = 'dataset/val_drop_span_cap.json'
-train_captions = span_drop_captions(train_captions, max_caption_len, filename_train_drop_span_cap)
-val_captions = span_drop_captions(val_captions, max_caption_len, filename_val_drop_span_cap)
+filename_val_drop_span_cap = 'dataset/val_drop_span_captions.json'
+# ***need to drop the features also***
+# train_captions = span_drop_captions(train_captions, max_caption_len, filename_train_drop_span_cap)
+#
+# span_drop_captions(val_captions, max_caption_len, filename_val_drop_span_cap)
+
 # with open(filename_train_drop_span_cap) as f:
+#     print('Loading spanned, dropped training captions...')
 #     train_captions = json.load(f)
-# with open(filename_val_drop_span_cap) as f:
-#     train_captions = json.load(f)
+
+with open(filename_val_drop_span_cap) as f:
+    print('Loading spanned, dropped validation captions...')
+    val_captions = json.load(f)
 print('Done\n')
 
-
-# print('Creating training datasets...')
-# F, C, Y = create_dataset(val_features, val_captions, max_caption_len, word_indexes)
-# train_captions = None
-# train_features = None
-# val_captions = None
-# val_features = None
-# print('Done\n')
+print('Creating training datasets...')
+C, Y = create_dataset(val_captions)
+train_captions = None
+train_features = None
+val_captions = None
+print('Done\n')
+print len(val_features)
 #
 # # This is the VGG-16 CNN, just because we can :P
 # # vgg_16_net = get_vgg_16()
 #
 # # This creates the 4096->300 encoder
-# print('Loading encoder...')
-# image_model = create_image_model(max_caption_len)
-# print('Done\n')
+print('Loading encoder...')
+image_model = create_image_model(max_caption_len-1)
+print('Done\n')
 #
 # # This creates the word_indexes->300 embedding model
-# print('Creating embedding layer...')
+print('Creating embedding layer...')
 # embedding_matrix = create_embedding_matrix(word_indexes, embedding_dim)
 # np.savetxt('embedding_matrix', embedding_matrix)
-# # embedding_matrix = np.loadtxt('embedding_matrix')
-# # embedding_layer = Embedding(len(word_indexes), embedding_dim,
-# #                             weights=[embedding_matrix],
-# #                             input_length=max_caption_len,
-# #                             trainable=False)
-# print('Done\n')
-
-# 512 hidden units in LSTM layer. 300-dimensional word vectors.
-# language_model = Sequential()
-# language_model.add(embedding_layer)
-# language_model.add(LSTM(512, return_sequences=True, input_shape=(max_caption_len, embedding_dim)))
-# language_model.add(TimeDistributed(Dense(300)))
+embedding_matrix = np.loadtxt('embedding_matrix')
+embedding_layer = Embedding(len(word_indexes), embedding_dim,
+                            weights=[embedding_matrix],
+                            input_length=max_caption_len-1,
+                            trainable=False)
+print('Done\n')
 #
-# model = Sequential()
-# model.add(Merge([image_model, language_model], mode='concat', concat_axis=-1))
-# model.add(LSTM(256, return_sequences=False))
-# model.add(Dense(len(word_indexes)))
-# model.add(Activation('softmax'))
-# model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
+# # 512 hidden units in LSTM layer. 300-dimensional word vectors.
+language_model = Sequential()
+language_model.add(embedding_layer)
+
+model = Sequential()
+model.add(Merge([image_model, language_model], mode='concat', concat_axis=-1))
+model.add(LSTM(256, return_sequences=True))
+model.add(TimeDistributed(Dense(300, activation='softmax')))
+
+model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
 #
 # # prediction = image_model.predict([F])
 # # print('Image model output shape:', prediction.shape)
@@ -303,5 +320,18 @@ print('Done\n')
 # # print('Language model output shape:', prediction2.shape)
 # # prediction3 = model.predict([F, np.reshape(C, (C.shape[0], 16))])
 # # print('Main model output shape:', prediction3.shape)
+
+print val_features.shape
+print C.shape[0]
+print Y.shape
+
+# how to embed Y into tensor?????
+model.fit([val_features, C], np.reshape(Y, (Y.shape[0], Y.shape[1], 300)), nb_epoch=5)
+
+# json_string = model.to_json()
+# with open('model_v1.json', 'w') as outfile:
+#     json.dump(json_string, outfile)
 #
-# model.fit([F, np.reshape(C, (C.shape[0], 16))], [Y], nb_epoch=5)
+# # Saving the weights
+# model.save_weights('model_v1.h5')
+
