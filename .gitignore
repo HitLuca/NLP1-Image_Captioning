@@ -134,7 +134,7 @@ ENV/
 # Rope project settings
 .ropeproject
 
-embeddings
+embeddings/*
 cnns
-layers/embedding_matrix.npy
+layers/*
 dataset/*
