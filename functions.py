@@ -1,7 +1,7 @@
 import json
 import numpy as np
 from keras.engine import Merge
-from keras.layers import Dense, RepeatVector, Embedding, LSTM, TimeDistributed
+from keras.layers import Dense, RepeatVector, Embedding, LSTM, TimeDistributed, Masking
 from keras.models import Sequential
 
 from vgg_net import VGG16
@@ -30,36 +30,17 @@ def get_word_indexes(word_indexes_filepath):
         return json.load(f)
 
 
-def create_image_model(max_caption_len, weights):
-    # This creates the image_model
-    input_dim = 4096
-    encoded_dim = 300
-
-    encoder = Sequential()
-    encoder.add(Dense(encoded_dim, activation='linear', input_shape=(input_dim,), trainable=False))
-    encoder.load_weights(weights)
-    encoder.add(RepeatVector(max_caption_len-1))
-    return encoder
-
-
-def create_model(max_caption_len, word_indexes, embedding_dim):
-    embedding_matrix_filepath = 'layers/embedding_matrix.npy'
-    encoder_weights_filepath = 'layers/autoencoder_weights'
-
-    image_model = create_image_model(max_caption_len, encoder_weights_filepath)
-    embedding_matrix = np.load(embedding_matrix_filepath)
-
-    embedding_layer = Embedding(len(word_indexes), embedding_dim,
-                                weights=[embedding_matrix],
-                                input_length=max_caption_len - 1,
-                                trainable=False)
-
+def create_model(max_caption_len, word_indexes, embedding_dim, feature_dim, encoded_dim):
     language_model = Sequential()
-    language_model.add(embedding_layer)
+    language_model.add(Embedding(len(word_indexes), embedding_dim, input_length=max_caption_len - 1, mask_zero=True))
+
+    image_model = Sequential()
+    image_model.add(Dense(encoded_dim, activation='linear', input_shape=(feature_dim,), trainable=True))
+    image_model.add(RepeatVector(max_caption_len - 1))
 
     model = Sequential()
     model.add(Merge([image_model, language_model], mode='concat', concat_axis=-1))
-    model.add(LSTM(512, return_sequences=True))
+    model.add(LSTM(256, return_sequences=True))
     model.add(TimeDistributed(Dense(len(word_indexes), activation='softmax')))
     model.compile(loss='sparse_categorical_crossentropy', optimizer='rmsprop')
 
