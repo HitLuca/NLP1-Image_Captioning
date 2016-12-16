@@ -40,7 +40,7 @@ checkpointer = ModelCheckpoint(filepath="model_weights.hdf5", verbose=0)
 
 # model.load_weights('model_weights.hdf5')
 
-model.fit(X, np.expand_dims(Y, -1), nb_epoch=50, callbacks=[checkpointer])
+model.fit(X, Y, nb_epoch=50, callbacks=[checkpointer])
 
 # prediction = model.predict([val_features[0].reshape((1, 4096)), np.array([1, 58, 58, 58, 58, 58, 58, 58, 58, 58, 58, 58, 58, 58, 58, 58, 58, 58]).reshape((1, 18))])
 # prediction = prediction[0]

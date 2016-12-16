@@ -1,6 +1,5 @@
 import json
 import numpy as np
-import os
 
 from functions import get_features
 
@@ -47,8 +46,8 @@ def calculate_word_indexes(train_captions, val_captions):
 
 
 def span_drop_captions_features(captions, features, max_caption_len, word_indexes):
-    new_features = np.ndarray(shape=(0, 4096), dtype='float32', order='F')
-    new_captions = np.empty((0, max_caption_len))
+    new_captions = []
+    new_features = []
 
     feature_index = 0
 
@@ -59,10 +58,11 @@ def span_drop_captions_features(captions, features, max_caption_len, word_indexe
                     caption.append('</SPAN>')
                 for i in range(len(caption)):
                     caption[i] = word_indexes[caption[i]]
-                new_captions = np.append(new_captions, np.array(caption).reshape(1, max_caption_len), axis=0)
-                new_features = np.append(new_features, features[feature_index].reshape(1, 4096), axis=0)
+                new_captions.append(caption)
+                new_features.append(features[feature_index][:])
         feature_index += 1
-        print(feature_index)
+    new_captions = np.array(new_captions)
+    new_features = np.array(new_features)
     return new_captions, new_features
 
 
@@ -105,29 +105,29 @@ vocab_size = 10000
 embedding_dim = 300
 max_caption_len = 19
 
-train_captions = get_captions(train_captions_filepath)
+# train_captions = get_captions(train_captions_filepath)
 # train_features = get_features(train_features_filepath)
 
 val_captions = get_captions(val_captions_filepath)
 val_features = get_features(val_features_filepath)
 
 
-add_sentence_tokens(train_captions)
+# add_sentence_tokens(train_captions)
 add_sentence_tokens(val_captions)
 
 
-word_indexes = calculate_word_indexes(train_captions, val_captions)
-with open('dataset/word_indexes.json', 'w') as f:
-    json.dump(word_indexes, f)
+# word_indexes = calculate_word_indexes(train_captions, val_captions)
+# with open('dataset/word_indexes.json', 'w') as f:
+#     json.dump(word_indexes, f)
+#
+# train_captions = None
+with open('dataset/word_indexes.json', 'r') as f:
+    word_indexes = json.load(f)
 
-train_captions = None
-# with open('dataset/word_indexes.json', 'r') as f:
-#     word_indexes = json.load(f)
-
-embedding_matrix = create_embedding_matrix(word_indexes, embedding_dim, embeddings_filepath)
-with open(embedding_matrix_filepath, 'wb') as f:
-    np.save(f, embedding_matrix)
-embedding_matrix = None
+# embedding_matrix = create_embedding_matrix(word_indexes, embedding_dim, embeddings_filepath)
+# with open(embedding_matrix_filepath, 'wb') as f:
+#     np.save(f, embedding_matrix)
+# embedding_matrix = None
 
 # train_captions, train_features = span_drop_captions_features(train_captions, train_features, max_caption_len, word_indexes)
 val_captions, val_features = span_drop_captions_features(val_captions, val_features,  max_caption_len, word_indexes)
