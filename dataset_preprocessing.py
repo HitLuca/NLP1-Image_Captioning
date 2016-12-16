@@ -105,42 +105,44 @@ vocab_size = 10000
 embedding_dim = 300
 max_caption_len = 19
 
-# train_captions = get_captions(train_captions_filepath)
+train_captions = get_captions(train_captions_filepath)
 # train_features = get_features(train_features_filepath)
 
 val_captions = get_captions(val_captions_filepath)
 val_features = get_features(val_features_filepath)
 
 
-# add_sentence_tokens(train_captions)
+add_sentence_tokens(train_captions)
 add_sentence_tokens(val_captions)
 
 
-# word_indexes = calculate_word_indexes(train_captions, val_captions)
-# with open('dataset/word_indexes.json', 'w') as f:
-#     json.dump(word_indexes, f)
-with open('dataset/word_indexes.json', 'r') as f:
-    word_indexes = json.load(f)
+word_indexes = calculate_word_indexes(train_captions, val_captions)
+with open('dataset/word_indexes.json', 'w') as f:
+    json.dump(word_indexes, f)
 
-# embedding_matrix = create_embedding_matrix(word_indexes, embedding_dim, embeddings_filepath)
-# with open(embedding_matrix_filepath, 'wb') as f:
-#     np.save(f, embedding_matrix)
-# embedding_matrix = None
+train_captions = None
+# with open('dataset/word_indexes.json', 'r') as f:
+#     word_indexes = json.load(f)
+
+embedding_matrix = create_embedding_matrix(word_indexes, embedding_dim, embeddings_filepath)
+with open(embedding_matrix_filepath, 'wb') as f:
+    np.save(f, embedding_matrix)
+embedding_matrix = None
 
 # train_captions, train_features = span_drop_captions_features(train_captions, train_features, max_caption_len, word_indexes)
-val_captions, val_features = span_drop_captions_features(val_captions[:500], val_features[:500],  max_caption_len, word_indexes)
+val_captions, val_features = span_drop_captions_features(val_captions, val_features,  max_caption_len, word_indexes)
 
-print(val_captions.shape)
-# with open(processed_train_captions_filepath, 'w') as f:
-#     json.dump(train_captions, f)
-# train_spanned_captions = None
+val_captions = val_captions.astype(int)
+val_features = val_features.astype(int)
+
+# with open(processed_train_captions_filepath, 'wb') as f:
+#     np.save(f, train_captions)
 
 with open(processed_val_captions_filepath, 'wb') as f:
     np.save(f, val_captions)
 
-# with open(processed_train_features_filepath, 'w') as f:
-#     np.save(f, train_spanned_features)
-# train_spanned_features = None
+# with open(processed_train_features_filepath, 'wb') as f:
+#     np.save(f, train_features)
 
 with open(processed_val_features_filepath, 'wb') as f:
     np.save(f, val_features)
