@@ -35,7 +35,7 @@ def create_model(max_caption_len, word_indexes, embedding_dim, feature_dim, enco
     language_model.add(Embedding(len(word_indexes), embedding_dim, input_length=max_caption_len - 1, mask_zero=True))
 
     image_model = Sequential()
-    image_model.add(Dense(encoded_dim, activation='linear', input_shape=(feature_dim,), trainable=True))
+    image_model.add(Dense(encoded_dim, activation='linear', input_shape=(feature_dim,)))
     image_model.add(RepeatVector(max_caption_len - 1))
 
     model = Sequential()

@@ -31,7 +31,7 @@ def calculate_word_indexes(train_captions, val_captions):
         captions = train_captions[i]
         for caption in captions:
             for word in caption:
-                if word not in indexes.keys():
+                if word not in indexes:
                     indexes[word] = curr_index
                     curr_index += 1
 
@@ -39,7 +39,7 @@ def calculate_word_indexes(train_captions, val_captions):
         captions = val_captions[i]
         for caption in captions:
             for word in caption:
-                if word not in indexes.keys():
+                if word not in indexes:
                     indexes[word] = curr_index
                     curr_index += 1
     return indexes
@@ -61,6 +61,7 @@ def span_drop_captions_features(captions, features, max_caption_len, word_indexe
                 new_captions.append(caption)
                 new_features.append(features[feature_index][:])
         feature_index += 1
+
     new_captions = np.array(new_captions)
     new_features = np.array(new_features)
     return new_captions, new_features
@@ -116,13 +117,13 @@ val_features = get_features(val_features_filepath)
 add_sentence_tokens(val_captions)
 
 
-# word_indexes = calculate_word_indexes(train_captions, val_captions)
-# with open('dataset/word_indexes.json', 'w') as f:
-#     json.dump(word_indexes, f)
-#
-# train_captions = None
-with open('dataset/word_indexes.json', 'r') as f:
-    word_indexes = json.load(f)
+word_indexes = calculate_word_indexes(train_captions, val_captions)
+with open('dataset/word_indexes.json', 'w') as f:
+    json.dump(word_indexes, f)
+train_captions = None
+
+# with open('dataset/word_indexes.json', 'r') as f:
+#     word_indexes = json.load(f)
 
 # embedding_matrix = create_embedding_matrix(word_indexes, embedding_dim, embeddings_filepath)
 # with open(embedding_matrix_filepath, 'wb') as f:
@@ -133,7 +134,7 @@ with open('dataset/word_indexes.json', 'r') as f:
 val_captions, val_features = span_drop_captions_features(val_captions, val_features,  max_caption_len, word_indexes)
 
 val_captions = val_captions.astype(int)
-val_features = val_features.astype(int)
+# train_captions = train_captions.astype(int)
 
 # with open(processed_train_captions_filepath, 'wb') as f:
 #     np.save(f, train_captions)
