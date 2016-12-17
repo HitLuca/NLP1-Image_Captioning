@@ -1,9 +1,8 @@
 import numpy as np
 from keras.callbacks import ModelCheckpoint
-from keras.layers import Embedding, Masking, LSTM
-from keras.models import Sequential
 
-from functions import get_captions, get_features, get_word_indexes, create_model
+from functions import get_captions, get_features, get_word_indexes, create_model, get_vgg_16
+
 
 train_captions_filepath = 'dataset/processed/train_captions.npy'
 train_features_filepath = 'dataset/processed/train_features.npy'
@@ -44,6 +43,6 @@ checkpointer = ModelCheckpoint(filepath="model_weights.hdf5", verbose=0)
 model.load_weights('model_weights.hdf5')
 
 try:
-    model.fit(X, Y, nb_epoch=1000, callbacks=[checkpointer], validation_split=0.2)
+    model.fit(X, Y, nb_epoch=1000, callbacks=[checkpointer], shuffle=True)
 except KeyboardInterrupt:
     checkpointer.on_epoch_end(0)
