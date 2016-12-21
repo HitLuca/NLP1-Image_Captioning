@@ -138,3 +138,4 @@ embeddings/*
 cnns
 layers/*
 dataset/*
+weights/*

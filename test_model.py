@@ -1,8 +1,9 @@
 from keras.preprocessing import image
 import numpy as np
 import keras.backend as K
+import os
 
-from functions import get_vgg_16, create_model, get_word_indexes
+from functions import get_vgg_16, get_word_indexes, create_model_1, create_model_2, create_model_3
 
 
 def get_features(vgg16, img_path):
@@ -33,7 +34,8 @@ def preprocess_input(x, dim_ordering='default'):
     return x
 
 
-word_indexes_filepath = 'dataset/word_indexes.json'
+word_indexes_filepath = 'dataset/frequencies/word_indexes.json'
+embedding_matrix_filepath = 'layers/embedding_matrix.npy'
 
 max_caption_len = 19
 feature_dim = 4096
@@ -41,31 +43,35 @@ encoded_dim = 300
 embedding_dim = 300
 
 word_indexes = get_word_indexes(word_indexes_filepath)
-model = create_model(max_caption_len, word_indexes, embedding_dim, feature_dim, encoded_dim)
+model = create_model_3(max_caption_len, word_indexes, embedding_dim, feature_dim, embedding_matrix_filepath)
 model.load_weights('model_weights.hdf5')
 
 
 vgg16 = get_vgg_16()
 
-img_path = 'img/table.jpg'
-image_features = get_features(vgg16, img_path)
+dir = 'img/'
 
-caption_index = 1
-caption = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-finished = False
+for filename in os.listdir(dir):
+    print(filename)
+    image_features = get_features(vgg16, dir + filename)
 
-while not finished:
-    prediction = model.predict([image_features, np.array(caption).reshape((1, 18))])
-    prediction = prediction[0]
-    index = np.argmax(prediction[caption_index-1])
-    word = list(word_indexes.keys())[list(word_indexes.values()).index(index)]
-    caption[caption_index] = index
-    caption_index += 1
-    if word == '</S>' or caption_index == max_caption_len-1:
-        finished = True
+    caption_index = 1
+    caption = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    finished = False
 
-i = 1
-while i < max_caption_len-1 and caption[i] != word_indexes['</S>']:
-    print(list(word_indexes.keys())[list(word_indexes.values()).index(caption[i])], end=' ')
-    i += 1
-print()
+    while not finished:
+        prediction = model.predict([image_features, np.array(caption).reshape((1, 18))])
+        prediction = prediction[0]
+        index = np.argmax(prediction[caption_index-1])
+        word = list(word_indexes.keys())[list(word_indexes.values()).index(index)]
+        caption[caption_index] = index
+        caption_index += 1
+        if word == '</S>' or caption_index == max_caption_len-1:
+            finished = True
+
+    i = 1
+    while i < max_caption_len-1 and caption[i] != word_indexes['</S>']:
+        print(list(word_indexes.keys())[list(word_indexes.values()).index(caption[i])], end=' ')
+        i += 1
+    print()
+    print()
