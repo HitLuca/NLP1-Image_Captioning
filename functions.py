@@ -1,7 +1,7 @@
 import json
 import numpy as np
 from keras.engine import Merge
-from keras.layers import Dense, RepeatVector, Embedding, LSTM, TimeDistributed
+from keras.layers import Dense, RepeatVector, Embedding, LSTM, TimeDistributed, GRU
 from keras.models import Sequential
 
 from vgg_net import VGG16
@@ -76,6 +76,44 @@ def create_model_3(max_caption_len, word_indexes, embedding_dim, feature_dim, em
     model = Sequential()
     model.add(Merge([image_model, language_model], mode='concat', concat_axis=-1))
     model.add(LSTM(512, return_sequences=True))
+    model.add(TimeDistributed(Dense(len(word_indexes), activation='softmax')))
+    model.compile(loss='sparse_categorical_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
+
+    return model
+
+
+def create_model_4(max_caption_len, word_indexes, embedding_dim, feature_dim, embedding_matrix_filepath):
+    embedding_matrix = np.load(embedding_matrix_filepath)
+
+    language_model = Sequential()
+    language_model.add(Embedding(len(word_indexes), embedding_dim, weights=[embedding_matrix], input_length=max_caption_len - 1, mask_zero=True, trainable=False))
+
+    image_model = Sequential()
+    # image_model.add(Dense(encoded_dim, activation='linear', input_shape=(feature_dim,)))
+    image_model.add(RepeatVector(max_caption_len - 1, input_shape=(feature_dim,)))
+
+    model = Sequential()
+    model.add(Merge([image_model, language_model], mode='concat', concat_axis=-1))
+    model.add(LSTM(256, return_sequences=True))
+    model.add(TimeDistributed(Dense(len(word_indexes), activation='softmax')))
+    model.compile(loss='sparse_categorical_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
+
+    return model
+
+
+def create_model_5(max_caption_len, word_indexes, embedding_dim, feature_dim, embedding_matrix_filepath):
+    embedding_matrix = np.load(embedding_matrix_filepath)
+
+    language_model = Sequential()
+    language_model.add(Embedding(len(word_indexes), embedding_dim, weights=[embedding_matrix], input_length=max_caption_len - 1, mask_zero=True, trainable=False))
+
+    image_model = Sequential()
+    image_model.add(Dense(128, activation='linear', input_shape=(feature_dim,)))
+    image_model.add(RepeatVector(max_caption_len - 1, input_shape=(feature_dim,)))
+
+    model = Sequential()
+    model.add(Merge([image_model, language_model], mode='concat', concat_axis=-1))
+    model.add(GRU(256, return_sequences=True))
     model.add(TimeDistributed(Dense(len(word_indexes), activation='softmax')))
     model.compile(loss='sparse_categorical_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
 

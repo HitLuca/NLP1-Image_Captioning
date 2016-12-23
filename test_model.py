@@ -3,7 +3,8 @@ import numpy as np
 import keras.backend as K
 import os
 
-from functions import get_vgg_16, get_word_indexes, create_model_1, create_model_2, create_model_3
+from functions import get_vgg_16, get_word_indexes, create_model_1, create_model_2, create_model_3, create_model_4, \
+    create_model_5
 
 
 def get_features(vgg16, img_path):
@@ -62,8 +63,15 @@ for filename in os.listdir(dir):
     while not finished:
         prediction = model.predict([image_features, np.array(caption).reshape((1, 18))])
         prediction = prediction[0]
-        index = np.argmax(prediction[caption_index-1])
+
+        index = np.argmax(prediction[caption_index - 1])
         word = list(word_indexes.keys())[list(word_indexes.values()).index(index)]
+
+        while word == '</?>':
+            prediction[caption_index-1][index] = 0
+            index = np.argmax(prediction[caption_index-1])
+            word = list(word_indexes.keys())[list(word_indexes.values()).index(index)]
+
         caption[caption_index] = index
         caption_index += 1
         if word == '</S>' or caption_index == max_caption_len-1:
